@@ -5,25 +5,24 @@ Description: Dashboard metrics for WordPress
 Author: WPCraft
 Version: 0.1
 */
-
 namespace BA;
 
+class DashboardMetrics 
+{
+    public static function init()
+    {
+        require_once __DIR__ . '/inc/AllPosts.php';
+        require_once __DIR__ . '/inc/PostsByAuthors.php';
 
-class DashboardMetrics {
+        add_action( 'admin_enqueue_scripts', function($hook)
+        {
+            if( 'index.php' != $hook){
+                return;
+            }
 
-
-
-    public static function init(){
-
-
-        add_action( 'admin_enqueue_scripts', function(){
             wp_enqueue_script( 'google-chart', 'https://www.gstatic.com/charts/loader.js' );
             wp_enqueue_script( 'wp-api' );
         }, 99 );
-
-
-        require_once __DIR__ . '/inc/AllPosts.php';
-
     }
 
 }

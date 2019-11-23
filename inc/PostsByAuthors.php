@@ -1,18 +1,30 @@
 <?php 
-
 namespace DBMetrics;
 
-class AllPosts {
+class PostsByAuthors {
 
     static public $data = [];
-    static public $widget_title = 'Количество постов по месяца';
-    static public $div_id = 'chart_all_posts';
-    static public $wname = 'chartAllPosts';
+    static public $table_source = [];
+    static public $widget_title = 'Посты по авторам';
+    static public $div_id = 'chart_posts_by_authors';
+
+    static public $wname = 'chartPostsByAuthors';
 
     public static function init(){
+
+        // add_action('init', function(){
+        //     if( ! isset($_GET['ddd']) ){
+        //         return;
+        //     }
+
+        //     $d = self::get_data();
+        //     exit;
+            
+        // });
+
         add_action('wp_dashboard_setup', [__CLASS__, 'add_widget']);
         add_action('rest_api_init', function () {
-            register_rest_route('ba/v1', '/metrics/posts', array(
+            register_rest_route('ba/v1', '/metrics/postsByAuthor', array(
                 'methods'  => 'GET',
                 'callback' => [__CLASS__, 'metrics_posts_data']
             ));
@@ -22,8 +34,9 @@ class AllPosts {
 
     public static function get_data(){
 
-        if(self::$data = get_transient('ba_posts_by_months')){
-            return self::$data;
+        $transient_name = 'ba_posts_by_months_by_author';
+        if(self::$data = get_transient($transient_name)){
+            // return self::$data;
         }
 
         $args = [
@@ -41,25 +54,65 @@ class AllPosts {
 
         foreach($posts as $post){
             $timestamp = strtotime($post->post_date);
-            $ym = date('Y m', $timestamp);
-            self::count_ym($ym);
+            self::$table_source[] = [
+                'date_year_month' => date('Y - m', $timestamp),
+                'author' => get_author_name($post->post_author),
+                'count' => 1,
+            ];
+            // self::count_ym($year_month);
         }
 
-        set_transient('ba_posts_by_months', self::$data, 100000);
+        self::data_prepare(self::$table_source);
+
+
+        // echo '<pre>';
+        // var_dump(self::$data); 
+        // var_dump(self::$table_source); 
+        
+        // exit;
+
+        set_transient($transient_name, self::$data, 100000);
 
         return self::$data;
     }
 
-    public static function count_ym($ym)
+    public static function data_prepare($source_data)
     {
-        foreach(self::$data as $row_key => $row){
-            if($row[0] == $ym){
-                self::$data[$row_key][1]++;
-                return;
+        $authors = array_column($source_data, 'author');
+        $authors = array_unique($authors);
+        $first_row = $authors;
+        array_unshift($first_row, 'Год и месяц');
+        $data['first_row'] = $first_row;
+
+        foreach($source_data as $row){
+
+            $date = $row['date_year_month'];
+            $author = $row['author'];
+
+            if( ! isset($data[$date])){
+                foreach($authors as $author){
+                    $data[$date][$author] = 0;
+                }
             }
+
+            $data[$date][$author]++;
         }
 
-        self::$data[] = [$ym, 1];
+        $data2 = [];
+        foreach($data as $key => $row){
+            if($key == 'first_row'){
+                $data2[] = $row;
+                continue;
+            }
+
+            $new_row = array_values($row);
+            array_unshift($new_row, $key);
+            $data2[] = $new_row;
+
+        }
+
+        self::$data = $data2;
+        return self::$data;
 
     }
 
@@ -68,7 +121,6 @@ class AllPosts {
         $data = [];
 
         $data = self::get_data();
-        array_unshift($data, ["Год и месяц", "Количество"]);
 
         $response = new \WP_REST_Response($data);
         return $response;
@@ -92,7 +144,7 @@ class AllPosts {
 
                 // 1. Создаём новый объект XMLHttpRequest
                 var xhr = new XMLHttpRequest();
-                var apiUrl = wpApiSettings.root + 'ba/v1/metrics/posts';
+                var apiUrl = wpApiSettings.root + 'ba/v1/metrics/postsByAuthor';
 
                 // 2. Конфигурируем его: GET-запрос на URL 'phones.json'
                 xhr.open('GET', apiUrl, false);
@@ -101,27 +153,25 @@ class AllPosts {
                 xhr.send();
 
                 // 4. Если код ответа сервера не 200, то это ошибка
-                if (xhr.status != 200) {
-                // обработать ошибку
-                    // alert( xhr.status + ': ' + xhr.statusText ); // пример вывода: 404: Not Found
-                } else {
-                // вывести результат
-                    // alert( xhr.responseText ); // responseText -- текст ответа.
+                if (xhr.status == 200) {
                     data_api = JSON.parse(xhr.responseText);
-
-                }
+                } 
 
                 google.charts.load('current', {'packages':['corechart']});
                 google.charts.setOnLoadCallback(drawChart);
 
                 function drawChart() {
+                    console.log(data_api);
 
                     var data = google.visualization.arrayToDataTable(data_api);
 
                     var options = {
                         title: "Посты по месяцам",
-                        bar: {groupWidth: "95%"},
-                        legend: { position: "none" },
+                        // vAxis: {title: 'Посты'},
+                        // hAxis: {title: 'Месяцы'},
+                        bar: {groupWidth: "80%"},
+                        // isStacked:true,
+                        legend: { position: "bottom" },
                     };            
                     
                     var chart = new google.visualization.ColumnChart(document.getElementById('<?= self::$div_id ?>'));
@@ -135,4 +185,4 @@ class AllPosts {
     }
 }
 
-AllPosts::init();
+PostsByAuthors::init();
