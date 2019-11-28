@@ -12,16 +12,6 @@ class PostsByAuthors {
 
     public static function init(){
 
-        // add_action('init', function(){
-        //     if( ! isset($_GET['ddd']) ){
-        //         return;
-        //     }
-
-        //     $d = self::get_data();
-        //     exit;
-            
-        // });
-
         add_action('wp_dashboard_setup', [__CLASS__, 'add_widget']);
         add_action('rest_api_init', function () {
             register_rest_route('ba/v1', '/metrics/postsByAuthor', array(
@@ -36,7 +26,7 @@ class PostsByAuthors {
 
         $transient_name = 'ba_posts_by_months_by_author';
         if(self::$data = get_transient($transient_name)){
-            // return self::$data;
+            return self::$data;
         }
 
         $args = [
@@ -59,19 +49,11 @@ class PostsByAuthors {
                 'author' => get_author_name($post->post_author),
                 'count' => 1,
             ];
-            // self::count_ym($year_month);
         }
 
         self::data_prepare(self::$table_source);
 
-
-        // echo '<pre>';
-        // var_dump(self::$data); 
-        // var_dump(self::$table_source); 
-        
-        // exit;
-
-        set_transient($transient_name, self::$data, 100000);
+        set_transient($transient_name, self::$data, HOUR_IN_SECONDS);
 
         return self::$data;
     }

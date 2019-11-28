@@ -5,7 +5,7 @@ namespace DBMetrics;
 class AllPosts {
 
     static public $data = [];
-    static public $widget_title = 'Количество постов по месяца';
+    static public $widget_title = 'Количество постов по месяцам';
     static public $div_id = 'chart_all_posts';
     static public $wname = 'chartAllPosts';
 
@@ -45,7 +45,7 @@ class AllPosts {
             self::count_ym($ym);
         }
 
-        set_transient('ba_posts_by_months', self::$data, 100000);
+        set_transient('ba_posts_by_months', self::$data, HOUR_IN_SECONDS);
 
         return self::$data;
     }

@@ -3,7 +3,7 @@
 Plugin Name: DB Metrics
 Description: Dashboard metrics for WordPress
 Author: WPCraft
-Version: 0.1
+Version: 0.2
 */
 namespace BA;
 
